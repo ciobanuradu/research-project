@@ -67,8 +67,8 @@ checkpoint_interval = 50000 # @param {type:"integer"}
 
 num_atoms = 51  # @param {type:"integer"}
 
-min_q_value = -20  # @param {type:"integer"}
-max_q_value = 10  # @param {type:"integer"}
+min_q_value = -1200  # @param {type:"integer"}
+max_q_value = 0  # @param {type:"integer"}
 
 n_step_update = 2  # @param {type:"integer"}
 
@@ -80,9 +80,9 @@ threshold = 0.375
 gamma = 0.7  # NOTE: Fiddle with this dial in the future, default: 0.2
 
 
-EPSILON_MAX = 1 # Max exploration rate
-EPSILON_MIN = 0.1 # Min exploration rate
-EPSILON_DECAY_STEPS = 150000 # How many steps to decay from max exploration to min exploration
+EPSILON_MAX = 1.0 # Max exploration rate
+EPSILON_MIN = 0.01 # Min exploration rate
+EPSILON_DECAY_STEPS = 40000 # How many steps to decay from max exploration to min exploration
 
 
 checkpoint_dir = os.path.join(os.path.curdir, 'models','cdqn')
@@ -162,9 +162,11 @@ optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
 
 train_step_counter = tf.Variable(0)
 
+global_step = tf.compat.v1.train.get_or_create_global_step()
+
 epsilon = tf.compat.v1.train.polynomial_decay(
     EPSILON_MAX,
-    train_step_counter,
+    global_step,
     EPSILON_DECAY_STEPS,
     end_learning_rate=EPSILON_MIN)
 
@@ -179,7 +181,7 @@ agent = categorical_dqn_agent.CategoricalDqnAgent(
     n_step_update=n_step_update,
     td_errors_loss_fn=common.element_wise_squared_loss,
     gamma=gamma,
-    train_step_counter=train_step_counter)
+    train_step_counter=global_step)
 agent.initialize()
 
 
@@ -317,7 +319,7 @@ for _ in range(num_iterations):
     
   if step % checkpoint_interval == 0:
     print("saving checkpoint...")
-    train_checkpointer.save(train_step_counter)
+    train_checkpointer.save(global_step)
     print("checkpoint saved!")
 
 tf_policy_saver.save(policy_dir)
