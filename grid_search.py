@@ -17,10 +17,10 @@ import random
 
 params = {
     "EPSILON_MAX":[1.0, 0.8, 0.5],
-    "EPSILON_MIN":[0.01, 0.05, 0.1, 0.2],
-    "EPSILON_DECAY_STEPS":[10000, 25000, 50000, 100000],
-    "learning_rate":[1e-4, 1e-5, 1e-6],
-    "gamma":[0.99, 0.9, 0.8, 0.6],
+    "EPSILON_MIN":[0.01, 0.05, 0.1],
+    "EPSILON_DECAY_STEPS":[500, 1000, 2500, 5000],
+    "learning_rate":[1e-5, 1e-4],
+    "gamma":[1.035, 0.99, 0.9, 0.8],
     "n_step_update":[2]
 }
 

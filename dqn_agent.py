@@ -20,7 +20,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import numpy as np
 
-
+from dynamic_environment import dynamic_environment
+from continuous_environment import continuous_environment
 from tf_agents.networks import categorical_q_network
 
 from tf_agents.agents.categorical_dqn import categorical_dqn_agent
@@ -51,19 +52,20 @@ def optimal_solution_for_2_actions(p1, f1, p2, f2, gamma, fthresh):
 
 #HYPERPARAMS
 
-num_iterations = 300000 # @param {type:"integer"}
+num_iterations = 100000 # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"}
 collect_steps_per_iteration =   1# @param {type:"integer"}
 replay_buffer_max_length = 100000  # @param {type:"integer"}
 
-batch_size = 256  # @param {type:"integer"}
+batch_size = 1024  # @param {type:"integer"}
 learning_rate = 1e-5  # @param {type:"number"}
-log_interval = 600  # @param {type:"integer"}
+log_interval = 1000  # @param {type:"integer"}
 
 num_eval_episodes = 10  # @param {type:"integer"}
 eval_interval = 5000  # @param {type:"integer"}
-checkpoint_interval = 50000 # @param {type:"integer"}
+checkpoint_interval = 10000 # @param {type:"integer"}
+gamma = 1.01
 
 num_atoms = 51  # @param {type:"integer"}
 
@@ -76,13 +78,14 @@ MAX_LOSS = 120
 
 actions = [[0.4, 0.6],[0.2, 1]] #[[p1,F1],[p2,F2]]
 links = 4
-threshold = 0.375
-gamma = 0.7  # NOTE: Fiddle with this dial in the future, default: 0.2
+threshold = 0.5
+decay_rate = 0.2  # NOTE: Fiddle with this dial in the future, default: 0.2
 
 
-EPSILON_MAX = 1.0 # Max exploration rate
+EPSILON_MAX = 0.8 # Max exploration rate
 EPSILON_MIN = 0.01 # Min exploration rate
-EPSILON_DECAY_STEPS = 40000 # How many steps to decay from max exploration to min exploration
+EPSILON_DECAY_STEPS = 10000 # How many steps to decay from max exploration to min exploration
+
 
 
 checkpoint_dir = os.path.join(os.path.curdir, 'models','cdqn')
@@ -94,7 +97,7 @@ timeout = (1 / (max(actions, key=lambda x: x[1])[0]) * alpha) * (links ** 2)
 
 print("timeout:", timeout)
 
-env = discrete_environment.discrete_environment(actions, gamma, threshold, links)
+env = continuous_environment.continuous_environment(actions, decay_rate, threshold, links)
 env.reset()
 
 print(env.actions)
@@ -104,9 +107,9 @@ print(env.actions)
 print('Observation Spec:')
 print(env.time_step_spec().observation)
 
-train_py_env = discrete_environment.discrete_environment(actions, gamma, threshold, links)
+train_py_env = continuous_environment.continuous_environment(actions, decay_rate, threshold, links)
 train_py_env = TimeLimit(train_py_env, duration=timeout)
-eval_py_env = discrete_environment.discrete_environment(actions, gamma, threshold, links)
+eval_py_env = continuous_environment.continuous_environment(actions, decay_rate, threshold, links)
 eval_py_env = TimeLimit(eval_py_env, duration=timeout)
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
@@ -264,11 +267,13 @@ agent.train = common.function(agent.train)
 agent.train_step_counter.assign(0)
 
 
-print("evaluating baseline...")
-# print("evaluating policy once")
-# Evaluate the agent's policy once before training.
-avg_return = compute_avg_return(eval_env, agent.policy, 1)
-returns = [avg_return]
+# print("evaluating baseline...")
+# # print("evaluating policy once")
+# # Evaluate the agent's policy once before training.
+# avg_return = compute_avg_return(eval_env, agent.policy, 1)
+# returns = [avg_return]
+
+returns = []
 
 # Reset the environment.
 time_step = train_py_env.reset()
@@ -321,6 +326,10 @@ for _ in range(num_iterations):
     print("saving checkpoint...")
     train_checkpointer.save(global_step)
     print("checkpoint saved!")
+    
+  if step > num_iterations:
+    print(step)
+    break
 
 tf_policy_saver.save(policy_dir)
 

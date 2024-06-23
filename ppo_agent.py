@@ -40,7 +40,7 @@ flags.DEFINE_string(
 )
 flags.DEFINE_string('env_name', 'HalfCheetah-v2', 'Name of an environment')
 flags.DEFINE_integer(
-    'replay_buffer_capacity', 1000000, 'Replay buffer capacity per env.'
+    'replay_buffer_capacity', 100000, 'Replay buffer capacity per env.'
 )
 flags.DEFINE_integer(
     'num_parallel_environments', 2, 'Number of environments to run in parallel'
@@ -48,7 +48,7 @@ flags.DEFINE_integer(
 
 flags.DEFINE_integer(
     'num_environment_steps',
-    1000000,
+    100000,
     'Number of environment steps to run before finishing.',
 )
 flags.DEFINE_integer(
@@ -144,6 +144,7 @@ def train_eval(
     eval_metrics = [
         tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
         tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
+        
     ]
 
     global_step = tf.compat.v1.train.get_or_create_global_step()
@@ -345,7 +346,7 @@ def main(_):
       replay_buffer_capacity=FLAGS.replay_buffer_capacity,
       num_epochs=FLAGS.num_epochs,
       num_eval_episodes=FLAGS.num_eval_episodes,
-      learning_rate=1e-3,
+      learning_rate=1e-5,
       # Params for eval
       eval_interval=500,
       # Params for summaries and logging
